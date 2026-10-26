@@ -1,0 +1,38 @@
+:root {
+  color-scheme: light;
+  --ink: #17202a;
+  --muted: #667085;
+  --paper: #f4f6f8;
+  --panel: #ffffff;
+  --line: #d9e0e7;
+  --accent: #3157d5;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 15px/1.6 system-ui, sans-serif; }
+.container { width: min(980px, calc(100% - 32px)); margin: 48px auto; }
+header { margin-bottom: 28px; }
+h1 { margin: 0; font-size: clamp(32px, 7vw, 56px); letter-spacing: -0.04em; }
+h2 { margin-top: 0; }
+.eyebrow { color: var(--accent); font-weight: 800; letter-spacing: 0.16em; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 24px; margin: 18px 0; box-shadow: 0 10px 30px rgb(23 32 42 / 5%); }
+form { display: grid; gap: 14px; }
+label { display: grid; gap: 6px; color: var(--muted); font-weight: 650; }
+input { width: 100%; border: 1px solid var(--line); border-radius: 9px; padding: 11px 12px; color: var(--ink); background: white; }
+.row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.checkbox { grid-template-columns: auto 1fr; align-items: center; justify-content: start; }
+.checkbox input { width: auto; }
+button { border: 0; border-radius: 9px; padding: 11px 16px; font-weight: 750; cursor: pointer; }
+button[type="submit"] { justify-self: start; }
+.primary { background: var(--accent); color: white; }
+.action-panel { display: flex; gap: 18px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+.action-panel h2, .action-panel p { margin-bottom: 0; }
+.status, .empty { color: var(--muted); }
+.digest-meta { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; color: var(--muted); }
+.badge { border-radius: 999px; padding: 2px 9px; font-size: 12px; background: #eef1f5; }
+.badge.completed { background: #dcfce7; color: #166534; }
+.badge.failed, .error { color: #b42318; }
+pre { white-space: pre-wrap; overflow-wrap: anywhere; background: #f8fafc; border-radius: 10px; padding: 16px; }
+details { margin-top: 14px; }
+summary { cursor: pointer; color: var(--accent); }
+@media (max-width: 640px) { .row { grid-template-columns: 1fr; } .container { margin-top: 24px; } }

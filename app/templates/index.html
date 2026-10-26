@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>每日 AI 新闻助手</title>
+  <link rel="stylesheet" href="{{ url_for('static', path='/style.css') }}">
+</head>
+<body>
+  <main class="container">
+    <header>
+      <p class="eyebrow">FUNCTION CALLING AGENT</p>
+      <h1>每日 AI 新闻助手</h1>
+      <p>按身份与订阅偏好自主检索新闻，生成带来源的每日简报。</p>
+    </header>
+
+    <section class="panel">
+      <h2>订阅设置</h2>
+      <form id="settings-form">
+        <label>身份描述<input name="identity" value="{{ settings.identity }}" required></label>
+        <label>关注话题<input name="topics" value="{{ settings.topics | join(', ') }}" required></label>
+        <label>关键词<input name="keywords" value="{{ settings.keywords | join(', ') }}"></label>
+        <div class="row">
+          <label>时区<input name="timezone" value="{{ settings.timezone }}" required></label>
+          <label>推送时间<input name="push_time" type="time" value="{{ settings.push_time }}" required></label>
+        </div>
+        <label class="checkbox"><input name="push_enabled" type="checkbox" {% if settings.push_enabled %}checked{% endif %}>启用飞书推送</label>
+        <button type="submit">保存设置</button>
+        <span id="save-status" class="status"></span>
+      </form>
+    </section>
+
+    <section class="panel action-panel">
+      <div>
+        <h2>立即运行 Agent</h2>
+        <p>模型会自主决定搜索词、工具顺序和停止时机。</p>
+      </div>
+      <button id="generate-button" class="primary">生成今日简报</button>
+      <span id="generate-status" class="status"></span>
+    </section>
+
+    <section>
+      <h2>历史简报</h2>
+      {% if not digests %}<p class="empty">还没有运行记录。</p>{% endif %}
+      {% for digest in digests %}
+      <article class="digest panel">
+        <div class="digest-meta">
+          <strong>{{ digest.local_date }}</strong>
+          <span class="badge {{ digest.status }}">{{ digest.status }}</span>
+          <span>触发：{{ digest.trigger_type }}</span>
+          <span>推送：{{ digest.push_status }}</span>
+        </div>
+        {% if digest.content_md %}<pre>{{ digest.content_md }}</pre>{% endif %}
+        {% if digest.error_message %}<p class="error">{{ digest.error_message }}</p>{% endif %}
+        <details>
+          <summary>查看 Agent 调用轨迹</summary>
+          <pre>{{ digest.trace_json }}</pre>
+        </details>
+      </article>
+      {% endfor %}
+    </section>
+  </main>
+  <script>
+    const splitTerms = (value) => value.split(',').map((item) => item.trim()).filter(Boolean);
+
+    document.querySelector('#settings-form').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const form = new FormData(event.target);
+      const payload = {
+        identity: form.get('identity'),
+        topics: splitTerms(form.get('topics')),
+        keywords: splitTerms(form.get('keywords')),
+        timezone: form.get('timezone'),
+        push_time: form.get('push_time'),
+        push_enabled: form.get('push_enabled') === 'on'
+      };
+      const status = document.querySelector('#save-status');
+      status.textContent = '保存中…';
+      const response = await fetch('/api/settings', {
+        method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)
+      });
+      status.textContent = response.ok ? '已保存' : '保存失败';
+    });
+
+    document.querySelector('#generate-button').addEventListener('click', async (event) => {
+      const button = event.currentTarget;
+      const status = document.querySelector('#generate-status');
+      button.disabled = true;
+      status.textContent = 'Agent 正在运行，请稍候…';
+      const response = await fetch('/api/digests/generate', {method: 'POST'});
+      if (response.ok) {
+        location.reload();
+      } else {
+        const body = await response.json();
+        status.textContent = `生成失败：${body.detail || '未知错误'}`;
+        button.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
+
