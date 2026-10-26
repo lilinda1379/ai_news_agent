@@ -21,6 +21,22 @@ class FakeGateway:
         return self.responses.pop(0)
 
 
+class FakeScheduler:
+    def __init__(self):
+        self.configurations = []
+        self.started = False
+        self.stopped = False
+
+    def configure(self, settings):
+        self.configurations.append(dict(settings))
+
+    def start(self):
+        self.started = True
+
+    def shutdown(self):
+        self.stopped = True
+
+
 def make_config(tmp_path: Path) -> AppConfig:
     return AppConfig(
         openai_api_key="test-key",
@@ -120,3 +136,31 @@ def test_failed_generation_remains_visible_in_history(tmp_path):
     assert response.status_code == 502
     assert history.json()[0]["status"] == "failed"
     assert history.json()[0]["error_message"] == "search_news was not called"
+
+
+def test_settings_update_reschedules_daily_job(tmp_path):
+    scheduler = FakeScheduler()
+    app = create_app(
+        make_config(tmp_path),
+        gateway=successful_gateway(),
+        news_fetch=lambda _: RSS_XML,
+        scheduler=scheduler,
+    )
+
+    with TestClient(app) as client:
+        response = client.put(
+            "/api/settings",
+            json={
+                "identity": "Engineer",
+                "topics": ["Agent"],
+                "keywords": [],
+                "timezone": "Asia/Shanghai",
+                "push_time": "07:45",
+                "push_enabled": False,
+            },
+        )
+
+    assert response.status_code == 200
+    assert scheduler.started is True
+    assert scheduler.stopped is True
+    assert scheduler.configurations[-1]["push_time"] == "07:45"

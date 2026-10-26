@@ -16,6 +16,8 @@ from app.agent.tool_registry import ToolRegistry
 from app.config import AppConfig
 from app.database import Database
 from app.services.digest import DigestService
+from app.services.feishu import FeishuPush
+from app.services.scheduler import DigestScheduler
 from app.tools.filesystem import FilesystemTools
 from app.tools.news import NewsSearchTool
 
@@ -68,6 +70,7 @@ def create_app(
     gateway: Any | None = None,
     news_fetch=None,
     push=None,
+    scheduler=None,
 ) -> FastAPI:
     config = config or AppConfig.from_env()
     database = Database(config.database_path)
@@ -81,16 +84,26 @@ def create_app(
             else MissingGateway()
         )
     runner = AgentRunner(gateway, registry)
-    digest_service = DigestService(database, runner, push=push)
+    push_function = push or FeishuPush(config.feishu_webhook_url).send
+    digest_service = DigestService(database, runner, push=push_function)
+    digest_scheduler = scheduler or DigestScheduler(
+        lambda: digest_service.generate("scheduled")
+    )
 
     @asynccontextmanager
     async def lifespan(_: FastAPI):
         database.initialize()
-        yield
+        digest_scheduler.configure(database.get_settings())
+        digest_scheduler.start()
+        try:
+            yield
+        finally:
+            digest_scheduler.shutdown()
 
     application = FastAPI(title="每日 AI 新闻助手 Agent", lifespan=lifespan)
     application.state.database = database
     application.state.digest_service = digest_service
+    application.state.digest_scheduler = digest_scheduler
     templates = Jinja2Templates(directory=str(APP_DIR / "templates"))
     application.mount("/static", StaticFiles(directory=str(APP_DIR / "static")), name="static")
 
@@ -116,7 +129,9 @@ def create_app(
 
     @application.put("/api/settings")
     def put_settings(payload: SettingsPayload) -> dict[str, Any]:
-        return database.save_settings(payload.model_dump())
+        saved = database.save_settings(payload.model_dump())
+        digest_scheduler.configure(saved)
+        return saved
 
     @application.post("/api/digests/generate", status_code=201)
     def generate_digest() -> dict[str, Any]:
