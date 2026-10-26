@@ -83,6 +83,7 @@ class AgentRunner:
         trace: list[dict[str, Any]] = []
         seen_calls: set[str] = set()
         searched_news = False
+        grounded_urls: set[str] = set()
 
         for step in range(1, self.max_steps + 1):
             response = self.gateway.complete(messages, self.registry.schemas())
@@ -102,8 +103,11 @@ class AgentRunner:
                 content = (response.content or "").strip()
                 if not searched_news:
                     raise AgentLoopError("search_news was not called", trace)
-                if not re.search(r"https?://", content):
+                content_urls = set(re.findall(r'https?://[^\s\)\]\>\"]+', content))
+                if not content_urls:
                     raise AgentLoopError("digest has no source link", trace)
+                if not content_urls.issubset(grounded_urls):
+                    raise AgentLoopError("digest contains ungrounded source link", trace)
                 return AgentRunResult(content=content, trace=trace)
 
             messages.append(
@@ -130,6 +134,12 @@ class AgentRunner:
                     seen_calls.add(signature)
                     result = self.registry.execute(call.name, call.arguments)
                     searched_news = searched_news or call.name == "search_news" and bool(result.get("ok"))
+                    if call.name == "search_news" and result.get("ok"):
+                        grounded_urls.update(
+                            item.get("url", "")
+                            for item in result.get("data", {}).get("items", [])
+                            if item.get("url")
+                        )
                 duration_ms = round((time.perf_counter() - started) * 1000, 2)
                 trace.append(
                     {

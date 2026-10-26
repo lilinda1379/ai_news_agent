@@ -113,3 +113,15 @@ def test_agent_rejects_final_answer_without_source_link():
 
     with pytest.raises(AgentLoopError, match="digest has no source link"):
         AgentRunner(gateway, FakeRegistry()).run("system", "prepare digest")
+
+
+def test_agent_rejects_source_link_not_returned_by_news_tool():
+    gateway = FakeGateway(
+        [
+            tool_response(),
+            ModelResponse(content="[fake](https://fake.example/news)", tool_calls=[]),
+        ]
+    )
+
+    with pytest.raises(AgentLoopError, match="digest contains ungrounded source link"):
+        AgentRunner(gateway, FakeRegistry()).run("system", "prepare digest")
