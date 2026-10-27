@@ -83,7 +83,7 @@ def create_app(
             if config.openai_api_key
             else MissingGateway()
         )
-    runner = AgentRunner(gateway, registry)
+    runner = AgentRunner(gateway, registry, max_steps=config.agent_max_steps)
     push_function = push or FeishuPush(config.feishu_webhook_url).send
     digest_service = DigestService(database, runner, push=push_function)
     digest_scheduler = scheduler or DigestScheduler(
@@ -137,6 +137,10 @@ def create_app(
     def generate_digest() -> dict[str, Any]:
         try:
             return digest_service.generate("manual")
+        except RuntimeError as exc:
+            if "already running" in str(exc):
+                raise HTTPException(status_code=409, detail="Agent is already running") from exc
+            raise HTTPException(status_code=502, detail=str(exc)) from exc
         except Exception as exc:
             raise HTTPException(status_code=502, detail=str(exc)) from exc
 

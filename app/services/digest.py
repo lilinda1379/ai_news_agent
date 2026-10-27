@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import threading
 from collections.abc import Callable
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -23,8 +24,18 @@ class DigestService:
         self.database = database
         self.runner = runner
         self.push = push
+        # 调度任务和手动点击可能同时触发；同一时刻只允许跑一个 Agent
+        self._run_lock = threading.Lock()
 
     def generate(self, trigger_type: str = "manual") -> dict[str, Any]:
+        if not self._run_lock.acquire(blocking=False):
+            raise RuntimeError("generation already running")
+        try:
+            return self._generate_locked(trigger_type)
+        finally:
+            self._run_lock.release()
+
+    def _generate_locked(self, trigger_type: str) -> dict[str, Any]:
         settings = self.database.get_settings()
         local_date = datetime.now(ZoneInfo(settings["timezone"])).date().isoformat()
         digest_id = self.database.create_digest(trigger_type, local_date)
