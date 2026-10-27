@@ -56,3 +56,13 @@ def test_failed_digest_keeps_error_for_history(tmp_path):
     digest = db.get_digest(digest_id)
     assert digest["status"] == "failed"
     assert digest["error_message"] == "model unavailable"
+
+
+def test_database_enables_wal_journal(tmp_path):
+    db = Database(tmp_path / "agent.db")
+    db.initialize()
+
+    with db._connect() as connection:
+        mode = connection.execute("PRAGMA journal_mode").fetchone()[0]
+
+    assert mode.lower() == "wal"
