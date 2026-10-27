@@ -31,6 +31,7 @@ OPENAI_API_KEY=your-key
 OPENAI_BASE_URL=https://your-openai-compatible-endpoint/v1
 OPENAI_MODEL=your-tool-calling-model
 FEISHU_WEBHOOK_URL=https://open.feishu.cn/open-apis/bot/v2/hook/your-token
+AGENT_MAX_STEPS=10
 ```
 
 启动：
@@ -161,6 +162,19 @@ schema.sql       # 建表脚本
 - `bash` 不是无限制系统 Shell，而是白名单命令执行器。
 - RSS、模型或飞书失败时会保留失败记录，便于排查。
 - 飞书失败不会删除已经生成的简报。
+
+## 加固记录（相对最初可运行版本）
+
+| 改动 | 位置 | 原因 |
+|---|---|---|
+| Agent 轮数可配置，默认 10 | `app/config.py`、`app/main.py` | RSS 偶发失败会让模型多搜几轮，6 轮不够 |
+| SQLite WAL + busy_timeout | `app/database.py` | 调度线程与请求线程并发写，避免 database is locked |
+| RSS 网络失败重试一次 | `app/tools/news.py` | 实测 SSL EOF / 握手超时，重试显著降低失败率 |
+| 生成并发锁 + 409 | `app/services/digest.py`、`app/main.py` | 手动点击与定时任务可能撞车 |
+
+每处都有对应测试：`tests/test_config.py`、`tests/test_database.py`、`tests/test_news_tool.py`、`tests/test_digest.py`。
+
+代码讲解与面试追问见 [`docs/walkthrough.md`](docs/walkthrough.md)。
 
 更完整的设计说明见 [`docs/architecture.md`](docs/architecture.md)，三分钟演示顺序见 [`docs/demo-script.md`](docs/demo-script.md)。
 

@@ -36,3 +36,4 @@
 - 运行 `./scripts/test.ps1`。
 - 展示 `.env.example`、`schema.sql` 和 Git 提交历史。
 - 简述最大轮数、路径沙箱、命令白名单和来源真实性校验。
+- 点开 `docs/walkthrough.md`，用一句话带过 4 处加固：轮数可配、SQLite WAL、RSS 重试、生成并发锁。
