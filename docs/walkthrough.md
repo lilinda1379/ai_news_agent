@@ -125,6 +125,9 @@ AgentRunner.run
 ### 5. 参数契约怎么保证一致
 `tool_registry.py` 用 pydantic 模型定义参数，`model_json_schema()` 直接生成给模型的 schema，执行前 `model_validate`。schema 和实现同源，不会出现"模型传 query、函数收 keyword"那种错。
 
+### 6. 工具描述按"能力 + 时机 + 边界"写
+六条 description 都是三段式：能做什么、什么时候该用、什么时候别用或有什么限制。模型只读这段文字决定调不调，所以把"问今日新闻必须先调 `search_news`"直接写进描述，而不是只靠系统提示词。
+
 ---
 
 ## 六、高频追问与答案

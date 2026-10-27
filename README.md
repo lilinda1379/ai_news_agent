@@ -171,6 +171,7 @@ schema.sql       # 建表脚本
 | SQLite WAL + busy_timeout | `app/database.py` | 调度线程与请求线程并发写，避免 database is locked |
 | RSS 网络失败重试一次 | `app/tools/news.py` | 实测 SSL EOF / 握手超时，重试显著降低失败率 |
 | 生成并发锁 + 409 | `app/services/digest.py`、`app/main.py` | 手动点击与定时任务可能撞车 |
+| 工具描述补充触发条件 | `app/agent/tool_registry.py` | 让模型按"能力 + 时机 + 边界"判断何时调用 |
 
 每处都有对应测试：`tests/test_config.py`、`tests/test_database.py`、`tests/test_news_tool.py`、`tests/test_digest.py`。
 
