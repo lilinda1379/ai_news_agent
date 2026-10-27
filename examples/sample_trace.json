@@ -1,0 +1,27 @@
+[
+  {
+    "type": "model",
+    "step": 1,
+    "content": null,
+    "tool_calls": [
+      {
+        "id": "call_1",
+        "name": "search_news",
+        "arguments": "{\"query\":\"AI Agent latest news\",\"limit\":5}"
+      }
+    ]
+  },
+  {
+    "type": "tool",
+    "step": 1,
+    "tool_call_id": "call_1",
+    "tool": "search_news",
+    "arguments": {"query": "AI Agent latest news", "limit": 5},
+    "result": {
+      "ok": true,
+      "data": {"query": "AI Agent latest news", "items": []},
+      "error": null
+    },
+    "duration_ms": 120.5
+  }
+]
