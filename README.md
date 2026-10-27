@@ -75,7 +75,7 @@ Agent 生成前会 `list_dir` 看工作区、`read_file` 读规则和历史，�
 list_dir → bash → read_file ×5 → search_news ×3 → write_file
 ```
 
-所以这 5 个工具不是摆设，是模型在真实任务里按需调用的。
+提示词只声明约束（新闻事实只能来自 `search_news`、编辑规范以 `seed/editorial_rules.md` 为准、简报要保存），不规定"先做什么再做什么"，顺序仍由模型决定。
 
 ## Agent Loop
 
