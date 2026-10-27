@@ -60,6 +60,23 @@ uvicorn app.main:app --reload
 4. 在历史记录中查看 Markdown 简报、运行状态、推送状态和工具调用轨迹。
 5. 服务持续运行时，定时任务会按用户时区每日触发同一套 Agent。
 
+### 工作区预置资料
+
+`data/workspace/seed/` 里有四份 mock 资料，让 5 个文件类工具有真实使用场景：
+
+- `history_2026-10-26.md`：昨天的简报，用来避免今天头条重复；
+- `editorial_rules.md`：条数、来源、去重规则；
+- `topics.md`：长期关注话题与屏蔽词；
+- `README.md`：工作区说明。
+
+Agent 生成前会 `list_dir` 看工作区、`read_file` 读规则和历史，生成后用 `write_file` 把简报写到 `digests/YYYY-MM-DD.md`。一次实测轨迹：
+
+```
+list_dir → bash → read_file ×5 → search_news ×3 → write_file
+```
+
+所以这 5 个工具不是摆设，是模型在真实任务里按需调用的。
+
 ## Agent Loop
 
 ```text
