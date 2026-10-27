@@ -1,5 +1,7 @@
 from app.tools.news import NewsSearchTool
 
+import httpx
+
 
 RSS_XML = b"""<?xml version="1.0" encoding="UTF-8" ?>
 <rss version="2.0">
@@ -57,3 +59,31 @@ def test_search_news_rejects_empty_query():
     result = tool.search_news("   ")
 
     assert result == {"ok": False, "data": None, "error": "query is required"}
+
+
+def test_search_news_retries_once_on_transport_error(monkeypatch):
+    monkeypatch.setattr("app.tools.news.time.sleep", lambda _seconds: None)
+    calls = []
+
+    def fetch(url: str) -> bytes:
+        calls.append(url)
+        if len(calls) == 1:
+            raise httpx.ConnectError("temporary failure")
+        return RSS_XML
+
+    result = NewsSearchTool(fetch=fetch).search_news("AI", limit=5)
+
+    assert result["ok"] is True
+    assert len(calls) == 2
+
+
+def test_search_news_reports_error_after_retry_exhausted(monkeypatch):
+    monkeypatch.setattr("app.tools.news.time.sleep", lambda _seconds: None)
+
+    def fetch(_url: str) -> bytes:
+        raise httpx.ConnectError("still down")
+
+    result = NewsSearchTool(fetch=fetch).search_news("AI", limit=5)
+
+    assert result["ok"] is False
+    assert "news search failed" in result["error"]
